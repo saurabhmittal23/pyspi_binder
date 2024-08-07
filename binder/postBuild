@@ -5,13 +5,14 @@ pip install -e .
 wget http://agsiegert.astro.uni-wuerzburg.de/data.zip
 
 # Unzip the data
-unzip data.zip -d pyspi_internal
+unzip data.zip
 
 # Remove the zip file to save space
 rm data.zip
 
 mkdir pyspi_datafolder
-mv -r pyspi_internal/pointing_data pyspi_datafolder/
+mv data/pointing_data/ pyspi_datafolder/
+mv data pyspi_internal
 
 # Set environment variables
 echo "export PYSPI=/home/jovyan/pyspi_datafolder" >> ~/.bashrc
