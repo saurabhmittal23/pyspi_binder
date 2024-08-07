@@ -67,6 +67,11 @@ os.environ['PYSPI'] = '/home/jovyan/pyspi_datafolder'
 os.environ['PYSPI_PACKAGE_DATA'] = '/home/jovyan/pyspi_internal'
 EOF
 
+apt-get update
+apt-get install -y rsync
+
+log_message "rsync installed"
+
 # Create a start script
 log_message "Creating start script"
 cat << EOF > /home/jovyan/start
@@ -87,9 +92,6 @@ echo "Contents of pyspi_internal:" >> $LOGFILE
 ls -R /home/jovyan/pyspi_internal >> $LOGFILE
 
 log_message "postBuild script completed"
-
-apt-get update
-apt-get install -y rsync
 
 # Final message
 echo "postBuild script completed. Check $LOGFILE for details."
