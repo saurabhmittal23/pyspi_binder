@@ -88,5 +88,8 @@ ls -R /home/jovyan/pyspi_internal >> $LOGFILE
 
 log_message "postBuild script completed"
 
+apt-get update
+apt-get install -y rsync
+
 # Final message
 echo "postBuild script completed. Check $LOGFILE for details."
