@@ -1,19 +1,92 @@
 #!/bin/bash
+
+# Log file for debugging
+LOGFILE="/home/jovyan/postbuild.log"
+
+# Function to log messages
+log_message() {
+    echo "$(date): $1" >> $LOGFILE
+}
+
+log_message "Starting postBuild script"
+
+# Install the package in editable mode
+log_message "Installing package in editable mode"
 pip install -e .
 
 # Download the data
+log_message "Downloading data"
 wget http://agsiegert.astro.uni-wuerzburg.de/data.zip
+if [ $? -ne 0 ]; then
+    log_message "Failed to download data"
+    exit 1
+fi
 
 # Unzip the data
+log_message "Unzipping data"
 unzip data.zip
+if [ $? -ne 0 ]; then
+    log_message "Failed to unzip data"
+    exit 1
+fi
 
 # Remove the zip file to save space
+log_message "Removing zip file"
 rm data.zip
 
-mkdir pyspi_datafolder
+# Create directories and move data
+log_message "Creating directories and moving data"
+mkdir -p pyspi_datafolder
 mv data/pointing_data/ pyspi_datafolder/
 mv data pyspi_internal
 
-# Set environment variables
+# Set environment variables in multiple locations for redundancy
+log_message "Setting environment variables"
+
+# 1. In .bashrc
 echo "export PYSPI=/home/jovyan/pyspi_datafolder" >> ~/.bashrc
 echo "export PYSPI_PACKAGE_DATA=/home/jovyan/pyspi_internal" >> ~/.bashrc
+
+# 2. In .profile (for login shells)
+echo "export PYSPI=/home/jovyan/pyspi_datafolder" >> ~/.profile
+echo "export PYSPI_PACKAGE_DATA=/home/jovyan/pyspi_internal" >> ~/.profile
+
+# 3. In a custom script that can be sourced
+echo "export PYSPI=/home/jovyan/pyspi_datafolder" > /home/jovyan/pyspi_env.sh
+echo "export PYSPI_PACKAGE_DATA=/home/jovyan/pyspi_internal" >> /home/jovyan/pyspi_env.sh
+
+# 4. Set for the current session (might help with immediate use)
+export PYSPI=/home/jovyan/pyspi_datafolder
+export PYSPI_PACKAGE_DATA=/home/jovyan/pyspi_internal
+
+# Create a jupyter_config.py file
+log_message "Creating jupyter_config.py"
+cat << EOF > /home/jovyan/.jupyter/jupyter_config.py
+import os
+os.environ['PYSPI'] = '/home/jovyan/pyspi_datafolder'
+os.environ['PYSPI_PACKAGE_DATA'] = '/home/jovyan/pyspi_internal'
+EOF
+
+# Create a start script
+log_message "Creating start script"
+cat << EOF > /home/jovyan/start
+#!/bin/bash
+export PYSPI=/home/jovyan/pyspi_datafolder
+export PYSPI_PACKAGE_DATA=/home/jovyan/pyspi_internal
+exec "\$@"
+EOF
+chmod +x /home/jovyan/start
+
+# Verify the environment setup
+log_message "Verifying environment setup"
+echo "PYSPI is set to: $PYSPI" >> $LOGFILE
+echo "PYSPI_PACKAGE_DATA is set to: $PYSPI_PACKAGE_DATA" >> $LOGFILE
+echo "Contents of pyspi_datafolder:" >> $LOGFILE
+ls -R /home/jovyan/pyspi_datafolder >> $LOGFILE
+echo "Contents of pyspi_internal:" >> $LOGFILE
+ls -R /home/jovyan/pyspi_internal >> $LOGFILE
+
+log_message "postBuild script completed"
+
+# Final message
+echo "postBuild script completed. Check $LOGFILE for details."
