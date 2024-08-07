@@ -6,10 +6,6 @@
 # pyspi
 ![alt text](https://raw.githubusercontent.com/BjoernBiltzinger/pyspi/master/docs/media/pypsi_logo2.png)
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/saurabhmittal23/pyspi_binder/HEAD)
-
-.. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/saurabhmittal23/pyspi_binder/HEAD
 
 A python analysis framework for INTEGRAL/SPI
 
