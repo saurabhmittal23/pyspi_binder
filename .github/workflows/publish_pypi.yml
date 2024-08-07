@@ -1,0 +1,169 @@
+name: CI
+on:
+  push:
+    paths-ignore:
+      - "README.md"
+      - "**/docs/**"
+      - ".github/workflows/docs.yml"
+      - "paper.md"
+      - "paper.bib"
+      - "**/joss_plots/**"
+
+  pull_request:
+    branches:
+      - master
+      - dev
+
+  schedule:
+    - cron: "0 11 * * *"
+
+jobs:
+
+  test-pip:
+    name: Test on Pip
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache data folder
+        uses: actions/cache@v2
+        id: cache-data-folder
+        with:
+          path: ~/data
+          key: data
+
+      - name: Download data folder
+        env:
+          CACHE_HIT: ${{steps.cache-data-folder.outputs.cache-hit}}
+        run: |
+          echo "Getting data folder"
+          if [[ "$CACHE_HIT" == 'true' ]]; then
+
+          echo "data folder already in cache. using this."
+
+          else
+          echo "Download zip data folder."
+          wget https://grb.mpe.mpg.de/pyspi_datafolder
+          mv pyspi_datafolder ~/data.zip
+          unzip -o ~/data.zip -d ~/
+          fi
+
+      - name: Install Multinest
+        run: |
+          
+          sudo apt-get install -qq libblas{3,-dev} liblapack{3,-dev} cmake build-essential git gfortran
+          git clone https://github.com/farhanferoz/MultiNest.git
+
+          mkdir /home/runner/multinest_install
+
+          cd MultiNest/MultiNest_v3.12_CMake/multinest
+          
+          mkdir build
+          
+          cd build
+
+          cmake -DCMAKE_INSTALL_PREFIX=/home/runner/multinest_install ..
+
+          make
+
+          make install
+
+          export LD_LIBRARY_PATH=/home/runner/multinest_install:${LD_LIBRARY_PATH}
+
+          cd ../../../
+          pwd
+          
+      - name: Install dependencies
+        run: |
+          mkdir /home/runner/PySPI_data
+          python -m pip install --upgrade pip wheel
+          pip install cryptography pyOpenSSL pyvo pyRXP --upgrade;
+          pip install --upgrade astromodels
+          pip install --upgrade threeML
+          pip install --upgrade flake8 coverage pytest-cov cython
+          pip install pandas==1.3
+          pip install -e .
+
+      - name: Copy example data folder to external data folder
+        run: |
+          mkdir -p /home/runner/PySPI_data/pointing_data
+          cp -r pyspi/data/* /home/runner/PySPI_data/pointing_data
+
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Test pip on ${{ matrix.python-version }}
+        run: |
+          python -m pytest -vv --cov=pyspi --cov-report=xml
+        env:
+          PYTEST_ADDOPTS: "--color=yes"
+          OMP_NUM_THREADS: 1
+          MKL_NUM_THREADS: 1
+          NUMEXPR_NUM_THREADS: 1
+          MPLBACKEND: "Agg"
+          PYSPI: /home/runner/PySPI_data
+          PYSPI_PACKAGE_DATA: /home/runner/data
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml
+          files: ./coverage1.xml,./coverage2.xml
+          directory: ./coverage/reports/
+
+
+  publish-pypi:
+    name: Publish to PyPi
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && (! endsWith(github.ref, 'dev'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Build package
+        run: |
+          pip install wheel
+          python setup.py sdist
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@v1.1.0
+        with:
+          user: __token__
+          password: ${{ secrets.PYSPI_GITHUB_PYPI }}
+          skip-existing: true
+
+  test-publish-pypi:
+    name: Build & verify package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install twine
+        run: |
+          python -m pip install twine
+      - name: Build package
+        run: |
+          python setup.py sdist
+      - name: List result
+        run: |
+          ls -lh dist
+      - name: Check long_description
+        run: |
+          python -m twine check dist/*

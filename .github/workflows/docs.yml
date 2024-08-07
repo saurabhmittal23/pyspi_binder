@@ -1,0 +1,118 @@
+name: Docs
+on:
+  push:
+    paths:
+      - "**/docs/**"
+      - "**/pyspi/**"
+      - ".github/workflows/docs.yml"
+  release:
+
+jobs:
+  notebooks:
+    name: "Build the notebooks for the docs"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Cache data folder
+        uses: actions/cache@v2
+        id: cache-data-folder
+        with:
+          path: ~/data
+          key: data
+
+      - name: Download data folder
+        env:
+          CACHE_HIT: ${{steps.cache-data-folder.outputs.cache-hit}}
+        run: |
+          echo "Getting data folder"
+          if [[ "$CACHE_HIT" == 'true' ]]; then
+
+          echo "data folder already in cache. using this."
+
+          else
+          echo "Download zip data folder."
+          wget https://grb.mpe.mpg.de/pyspi_datafolder
+          mv pyspi_datafolder ~/data.zip
+          unzip -o ~/data.zip -d ~/
+          fi
+
+      - name: Install Multinest
+        run: |
+
+          sudo apt-get install -qq libblas{3,-dev} liblapack{3,-dev} cmake build-essential git gfortran
+          git clone https://github.com/farhanferoz/MultiNest.git
+
+          mkdir /home/runner/multinest_install
+
+          cd MultiNest/MultiNest_v3.12_CMake/multinest
+
+          mkdir build
+
+          cd build
+
+          cmake -DCMAKE_INSTALL_PREFIX=/home/runner/multinest_install ..
+
+          make
+
+          make install
+
+          cd ../../../
+          pwd
+        
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install black
+          pip install --upgrade numpy ipython jupyter matplotlib==3.4
+          pip install jupytext jupyterthemes emcee
+          pip install astromodels
+          git clone https://github.com/threeML/threeML.git
+          cd threeML
+          python setup.py install
+          cd ..
+          pip install -r requirements.txt
+          pip install Cython
+          pip install pymultinest
+
+          python setup.py develop
+
+      - name: Copy example data folder to external data folder
+        run: |
+          mkdir -p /home/runner/PySPI_data/pointing_data
+          cp -r pyspi/data/* /home/runner/PySPI_data/pointing_data
+
+      - name: Execute the notebooks
+        shell: bash -l {0}
+        env:
+          PYSPI: /home/runner/PySPI_data
+          PYSPI_PACKAGE_DATA: /home/runner/data
+        run: |
+          export LD_LIBRARY_PATH=/home/runner/multinest_install/lib/:${LD_LIBRARY_PATH}
+          mkdir /home/runner/PySPI_data
+          jupytext --to ipynb --execute docs/md_docs/*.md
+          mv docs/md_docs/*.ipynb docs/notebooks/
+          ls docs/notebooks
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: notebooks-for-${{ github.sha }}
+          path: docs/notebooks
+
+      - name: Sleep for 1 minutes
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '1m'
+
+      - name: Trigger RTDs build
+        uses: dfm/rtds-action@v1
+        with:
+          webhook_url: ${{ secrets.RTDS_WEBHOOK_URL }}
+          webhook_token: ${{ secrets.RTDS_WEBHOOK_TOKEN }}
+          commit_ref: ${{ github.ref }}
