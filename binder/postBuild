@@ -10,6 +10,26 @@ log_message() {
 
 log_message "Starting postBuild script"
 
+# Install rsync from source
+log_message "Installing rsync from source"
+wget https://download.samba.org/pub/rsync/src/rsync-3.2.7.tar.gz
+tar xzvf rsync-3.2.7.tar.gz
+cd rsync-3.2.7
+./configure --prefix=$HOME/rsync
+make
+make install
+cd ..
+rm -rf rsync-3.2.7 rsync-3.2.7.tar.gz
+
+# Add rsync to PATH
+echo 'export PATH=$HOME/rsync/bin:$PATH' >> $HOME/.bashrc
+export PATH=$HOME/rsync/bin:$PATH
+
+# Verify rsync installation
+log_message "Verifying rsync installation"
+which rsync >> $LOGFILE
+rsync --version >> $LOGFILE
+
 # Install the package in editable mode
 log_message "Installing package in editable mode"
 pip install -e .
@@ -66,11 +86,6 @@ import os
 os.environ['PYSPI'] = '/home/jovyan/pyspi_datafolder'
 os.environ['PYSPI_PACKAGE_DATA'] = '/home/jovyan/pyspi_internal'
 EOF
-
-apt-get update
-apt-get install -y rsync
-
-log_message "rsync installed"
 
 # Create a start script
 log_message "Creating start script"
