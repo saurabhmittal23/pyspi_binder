@@ -8,11 +8,6 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/saurabhmittal23/pyspi_binder/HEAD)
 
-.. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/saurabhmittal23/pyspi_binder/HEAD
-
-
-
 A python analysis framework for INTEGRAL/SPI
 
 ```PySPI``` provides a plugin for [3ML](https://threeml.readthedocs.io/en/stable/) for INTEGRAL/SPI data, which allows to analyze GRB data at the moment. In the future we plan to also add support for non transient sources.
