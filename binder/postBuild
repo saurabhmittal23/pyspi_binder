@@ -133,3 +133,4 @@ log_message "postBuild script completed"
 
 # Final message
 echo "postBuild script completed. Check $LOGFILE for details."
+
