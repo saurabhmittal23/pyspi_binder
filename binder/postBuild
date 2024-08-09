@@ -10,6 +10,22 @@ log_message() {
 
 log_message "Starting postBuild script"
 
+set -e
+
+echo "Python version:"
+python --version
+echo "Which python:"
+which python
+echo "Python path:"
+echo $PYTHONPATH
+echo "System PATH:"
+echo $PATH
+
+python_version=$(python --version 2>&1)
+if [[ $python_version != *"3.8"* ]]; then
+    echo "Error: Expected Python 3.8, but got $python_version"
+    exit 1
+fi
 
 # Install rsync from source
 log_message "Installing rsync from source"
