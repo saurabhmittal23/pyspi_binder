@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - python=3.8  # or whichever version is appropriate
+  - numpy=1.24.4
   - pip
   - pip:
     - -r requirements.txt
