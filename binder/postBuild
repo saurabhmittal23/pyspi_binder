@@ -12,20 +12,17 @@ log_message "Starting postBuild script"
 
 set -e
 
-echo "Python version:"
+echo "Current Python version:"
 python --version
-echo "Which python:"
-which python
-echo "Python path:"
-echo $PYTHONPATH
-echo "System PATH:"
-echo $PATH
 
-python_version=$(python --version 2>&1)
-if [[ $python_version != *"3.8"* ]]; then
-    echo "Error: Expected Python 3.8, but got $python_version"
-    exit 1
+if [[ $(python --version 2>&1) != *"3.8"* ]]; then
+    echo "Python 3.8 not found, attempting to install..."
+    conda install -y python=3.8
+    source activate pyspi-env  # or your environment name
 fi
+
+echo "Python version after potential install:"
+python --version
 
 # Install rsync from source
 log_message "Installing rsync from source"
