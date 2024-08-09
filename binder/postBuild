@@ -86,6 +86,10 @@ echo "export PYSPI_PACKAGE_DATA=/home/jovyan/pyspi_internal" >> /home/jovyan/pys
 export PYSPI=/home/jovyan/pyspi_datafolder
 export PYSPI_PACKAGE_DATA=/home/jovyan/pyspi_internal
 
+# Create .jupyter directory if it doesn't exist
+log_message "Creating .jupyter directory if it doesn't exist"
+mkdir -p /home/jovyan/.jupyter
+
 # Create a jupyter_config.py file
 log_message "Creating jupyter_config.py"
 cat << EOF > /home/jovyan/.jupyter/jupyter_config.py
