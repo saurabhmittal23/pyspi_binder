@@ -40,6 +40,9 @@ fi
 #install requirements.txt
 pip install -r ../requirements.txt --no-cache-dir
 
+#downgrading numpy
+pip install --upgrade numpy=1.24.4
+
 # Install the package in editable mode
 log_message "Installing package in editable mode"
 pip install -e .
